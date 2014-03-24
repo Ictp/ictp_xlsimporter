@@ -55,7 +55,7 @@ class RHImporterHtdocs(RHHtdocs):
     """Static file handler for Importer plugin"""
 
     _local_path = pkg_resources.resource_filename(indico.ext.importer.ictp_xlsimporter.__name__, "htdocs")
-    _min_dir = 'ictp_xlsimporter'
+    _min_dir = 'importer'
 
 
 

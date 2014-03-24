@@ -50,11 +50,11 @@ class ImporterContributor(Component, Observable):
         Includes additional javascript file.
         """
         info = HelperMaKaCInfo.getMaKaCInfoInstance()
-        asset_env = PluginEnvironment('ictp_xlsimporter', os.path.dirname(__file__), 'ictp_xlsimporter')
+        asset_env = PluginEnvironment('ictp_xlsimporter', os.path.dirname(__file__), '/ictp_xlsimporter')
         asset_env.debug = info.isDebugActive()
         asset_env.register('ictp_xlsimporter_js', Bundle('js/ictp_xlsimporter.js',
                                                  filters='rjsmin',
-                                                 output="ictp_xlsimporter%(version)s.min.js"))
+                                                 output="ictp_xlsimporter__%(version)s.min.js"))
         params['paths'].extend(asset_env['ictp_xlsimporter_js'].urls())
 
     @classmethod
@@ -63,12 +63,15 @@ class ImporterContributor(Component, Observable):
         Includes additional Css files.
         """
         info = HelperMaKaCInfo.getMaKaCInfoInstance()
-        asset_env = PluginEnvironment('ictp_xlsimporter', os.path.dirname(__file__), 'ictp_xlsimporter')
+        asset_env = PluginEnvironment('ictp_xlsimporter', os.path.dirname(__file__), '/ictp_xlsimporter')
         asset_env.debug = info.isDebugActive()
         asset_env.register('ictp_xlsimporter_css', Bundle('css/ictp_xlsimporter.css',
                                                   filters='cssmin',
                                                   output="ictp_xlsimporter__%(version)s.min.css"))
         params['paths'].extend(asset_env['ictp_xlsimporter_css'].urls())
+
+
+
 
     @classmethod
     def customTimetableLinks(cls, obj, params={}):
