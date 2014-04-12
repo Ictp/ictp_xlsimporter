@@ -25,3 +25,4 @@ from indico.web.flask.wrappers import IndicoBlueprint
 blueprint = IndicoBlueprint('importer-ictp_xlsimporter', __name__)
 blueprint.add_url_rule('/event/<confId>/manage/timetable/upload', 'timetableUpload', handlers.RHTimetableUpload, methods=('POST',))
 blueprint.add_url_rule('/ictp_xlsimporter/<path:filepath>', 'htdocs', handlers.RHImporterHtdocs)
+blueprint.add_url_rule('/ictp_sis_import', 'sis_import', handlers.RHImporterSisImport)

@@ -39,6 +39,8 @@ from indico.util import json
 import xlrd
 import datetime
 from MaKaC.services.implementation.base import ServiceBase
+#from MaKaC.webinterface.rh.conferenceModif import RHConferenceModifBase
+from MaKaC.webinterface.rh.base import RHProtected
 
 import indico.ext.importer
 
@@ -50,6 +52,29 @@ from MaKaC import conference
 import MaKaC.common.info as info
 from datetime import datetime, timedelta
 from MaKaC.schedule import BreakTimeSchEntry
+
+
+class RHImporterSisImport(RHProtected):
+    """Importer for Sis"""
+
+
+
+    def _checkParams(self, params):
+        self._checkProtection()
+        self._params = params
+
+    def process(self, params):
+        #print "USER=" + str(self._getUser())
+        
+        self._checkParams(params)
+        return "QUI="+str(params)+ "__USER="+ str(self._getUser())+"__AUTH="+str(self._getAuth())
+
+
+
+
+
+
+
 
 class RHImporterHtdocs(RHHtdocs):
     """Static file handler for Importer plugin"""
