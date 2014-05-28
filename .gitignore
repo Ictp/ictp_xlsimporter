@@ -1,0 +1,14 @@
+# temporary/bytecode files
+*~
+.*.swp
+*.pyc
+*.pyo
+
+# python packaging
+/dist
+*.egg-info
+*.egg
+
+
+
+

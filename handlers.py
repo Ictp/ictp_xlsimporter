@@ -211,7 +211,7 @@ class DataSave(ServiceBase):
             if entry['event_type'] == 'TALK':
                 if st != '':
                     ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
-                values = {'title':entry['title'].decode('utf8'),'description':entry['comment'].decode('utf8')}
+                values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
                 c1 = conference.Contribution()
                 conf.addContribution(c1)
                 c1.setStartDate(ssd)
@@ -219,14 +219,16 @@ class DataSave(ServiceBase):
                 c1.setValues(values)
                 if room: c1.setRoom(room)
                 
-                cp = conference.ContributionParticipation()
-                data = {'familyName':entry['speaker'].decode('utf8')}
-                cp.setValues(data)
-                cp.setAffiliation(entry['affiliation'].decode('utf8'))
-                c1._addAuthor( cp )
-                c1._primaryAuthors.append( cp )            
-                c1.getConference().getAuthorIndex().index(cp)            
-                c1.addSpeaker(cp)
+                if entry['speaker']:
+                    cp = conference.ContributionParticipation()
+                    #data = {'familyName':entry['speaker'].decode('utf8')}
+                    data = {'familyName':entry['speaker'].encode('utf8')}
+                    cp.setValues(data)
+                    cp.setAffiliation(entry['affiliation'].encode('utf8'))
+                    c1._addAuthor( cp )
+                    c1._primaryAuthors.append( cp )            
+                    c1.getConference().getAuthorIndex().index(cp)            
+                    c1.addSpeaker(cp)
                 conf.getSchedule().addEntry(c1.getSchEntry())
                 ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
 
@@ -238,7 +240,7 @@ class DataSave(ServiceBase):
                 b=BreakTimeSchEntry()
                 b.setStartDate(ssd)
                 b.setDuration(dd[3],dd[4])
-                values = {'title':entry['title'],'description':entry['comment']}
+                values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
                 b.setValues(values)
                 if room: b.setRoom(room)
                 conf.getSchedule().addEntry(b) 
