@@ -203,7 +203,7 @@ class DataSave(ServiceBase):
             st = entry['start_time']
             if entry['room'] != '':            
                 room = conference.CustomRoom()
-                room.setName(entry['room'])
+                room.setName(entry['room'].decode('utf8'))
     
             if entry['event_type'] == 'SESSION':                
                 ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))  
@@ -211,7 +211,7 @@ class DataSave(ServiceBase):
             if entry['event_type'] == 'TALK':
                 if st != '':
                     ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
-                values = {'title':entry['title'],'description':entry['comment']}
+                values = {'title':entry['title'].decode('utf8'),'description':entry['comment'].decode('utf8')}
                 c1 = conference.Contribution()
                 conf.addContribution(c1)
                 c1.setStartDate(ssd)
