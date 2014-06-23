@@ -53,6 +53,32 @@ import MaKaC.common.info as info
 from datetime import datetime, timedelta
 from MaKaC.schedule import BreakTimeSchEntry
 
+import logging
+
+try: del os.environ['HTTP_PROXY']
+except: pass
+try: del os.environ['https_proxy']
+except: pass
+
+# create LOGGER
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger.setLevel(logging.DEBUG)
+
+logFilePath = "/opt/indico/log/indico.log"
+handler = logging.handlers.RotatingFileHandler(filename = logFilePath, maxBytes=1000000, backupCount = 100)
+#handler = logging.FileHandler(logFilePath)
+handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
+
+# write errors to email
+subject = "ERROR in ictp_sis_import execution"
+error_mail_handler = logging.handlers.SMTPHandler('smtp.ictp.it', 'pieretti@ictp.it', 'pieretti@ictp.it', subject)
+error_mail_handler.setLevel(logging.ERROR)
+error_mail_handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+#logger.addHandler(error_mail_handler)
 
 class RHImporterSisImport(RHProtected):
     """Importer for Sis"""
@@ -127,6 +153,8 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
             curr_row = -1
             ret = []
             ret_dict = {}
+            sd = None
+            room = None
             while curr_row < num_rows:
                 curr_row += 1
                 row = worksheet.row(curr_row)
@@ -142,16 +170,21 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
                         cell_value = xlrd.xldate_as_tuple(cell_value, 0)
                     
                     row_data.append(cell_value)
+                # se c'è una data, la fisso
+                if worksheet.cell_type(curr_row, 0) == 3:
+                    sd = row_data[0]
+                if row_data[9]:
+                    room = row_data[9]
                 if row_data[2] in ['TALK','BREAK','SESSION']:
                     dict_row = {
-                        'start_date': row_data[0],
+                        'start_date': sd,
                         'event_type': row_data[2],
                         'title': row_data[3],
                         'start_time': row_data[5],
                         'duration': row_data[6],
                         'speaker': row_data[7],
                         'affiliation': row_data[8],
-                        'room': row_data[9],
+                        'room': room,
                         'comment': row_data[10]
                     }
                     #print dict_row
@@ -168,7 +201,7 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
             resource.setFilePath(fileEntry["filePath"])        
             ret = self.readxls(resource.getFilePath())        
             # remove it
-            resource.delete()
+            #resource.delete()
             return json.dumps({'status': 'OK', 'info': ret}, textarea=True)
         except:
             return json.dumps({'status': 'KO', 'info': []}, textarea=True)
@@ -209,42 +242,50 @@ class DataSave(ServiceBase):
                 ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))  
                 
             if entry['event_type'] == 'TALK':
-                if st != '':
-                    ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
-                values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
-                c1 = conference.Contribution()
-                conf.addContribution(c1)
-                c1.setStartDate(ssd)
-                c1.setDuration(dd[3],dd[4])
-                c1.setValues(values)
-                if room: c1.setRoom(room)
+                if 1:
+#                try:
+                    if st != '':
+                        ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
+                    values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
+                    c1 = conference.Contribution()
+                    conf.addContribution(c1)
+                    c1.setStartDate(ssd)
+                    c1.setDuration(dd[3],dd[4])
+                    c1.setValues(values)
+                    if room: c1.setRoom(room)
                 
-                if entry['speaker']:
-                    cp = conference.ContributionParticipation()
-                    #data = {'familyName':entry['speaker'].decode('utf8')}
-                    data = {'familyName':entry['speaker'].encode('utf8')}
-                    cp.setValues(data)
-                    cp.setAffiliation(entry['affiliation'].encode('utf8'))
-                    c1._addAuthor( cp )
-                    c1._primaryAuthors.append( cp )            
-                    c1.getConference().getAuthorIndex().index(cp)            
-                    c1.addSpeaker(cp)
-                conf.getSchedule().addEntry(c1.getSchEntry())
-                ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
+                    if entry['speaker']:
+                        cp = conference.ContributionParticipation()
+                        #data = {'familyName':entry['speaker'].decode('utf8')}
+                        data = {'familyName':entry['speaker'].encode('utf8')}
+                        cp.setValues(data)
+                        cp.setAffiliation(entry['affiliation'].encode('utf8'))
+                        c1._addAuthor( cp )
+                        c1._primaryAuthors.append( cp )            
+                        c1.getConference().getAuthorIndex().index(cp)            
+                        c1.addSpeaker(cp)
+                    conf.getSchedule().addEntry(c1.getSchEntry())
+                    ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
+                #except:
+                #    logger.error("ERROR importing TALK. Entry: "+str(entry))
+                    
 
 
 
             if entry['event_type'] == 'BREAK':
-                if st != '':
-                    ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
-                b=BreakTimeSchEntry()
-                b.setStartDate(ssd)
-                b.setDuration(dd[3],dd[4])
-                values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
-                b.setValues(values)
-                if room: b.setRoom(room)
-                conf.getSchedule().addEntry(b) 
-                ssd = ssd + timedelta(hours=dd[3],minutes=dd[4]) 
+                try:
+                    if st != '':
+                        ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
+                    b=BreakTimeSchEntry()
+                    b.setStartDate(ssd)
+                    b.setDuration(dd[3],dd[4])
+                    values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
+                    b.setValues(values)
+                    if room: b.setRoom(room)
+                    conf.getSchedule().addEntry(b) 
+                    ssd = ssd + timedelta(hours=dd[3],minutes=dd[4]) 
+                except:
+                    logger.error("ERROR importing BREAK. Entry: "+str(entry))
 
         return json.dumps({'status': 'OK', 'info': 'ok'})
         
