@@ -53,7 +53,7 @@ import MaKaC.common.info as info
 from datetime import datetime, timedelta
 from MaKaC.schedule import BreakTimeSchEntry
 
-import logging
+import logging, transaction
 
 try: del os.environ['HTTP_PROXY']
 except: pass
@@ -194,7 +194,8 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
         
         
     def _process(self):
-        try:
+        #try:
+        if 1:
             fileEntry = self._files[0]
             resource = LocalFile()
             resource.setFileName(fileEntry["fileName"])
@@ -203,8 +204,8 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
             # remove it
             #resource.delete()
             return json.dumps({'status': 'OK', 'info': ret}, textarea=True)
-        except:
-            return json.dumps({'status': 'KO', 'info': []}, textarea=True)
+        #except:
+        #    return json.dumps({'status': 'KO', 'info': []}, textarea=True)
         
         
 
@@ -223,10 +224,11 @@ class DataSave(ServiceBase):
         localTimezone = 'UTC'
         ch = conference.ConferenceHolder()
         conf = ch.getById(self._confId)
-        #conf.enableSessionSlots() 
-        ssd = None 
+        conf.enableSessionSlots() 
+        ssd = None                 
+                
         for entry in entries:
-            #print "ENTRY=",entry
+            print "ENTRY=",entry
             if entry['start_date'] != '':
                 sd = entry['start_date']
             dd = entry['duration']
@@ -237,37 +239,47 @@ class DataSave(ServiceBase):
             if entry['room'] != '':            
                 room = conference.CustomRoom()
                 room.setName(entry['room'].decode('utf8'))
-    
-            if entry['event_type'] == 'SESSION':                
-                ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))  
+
+            if entry['event_type'] == 'SESSION':
+                ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                          
+                s1 = conference.Session()
+                s1.setStartDate(ssd)
+                conf.addSession(s1)             
+                #### SLOT
+                slot1 = conference.SessionSlot(s1)        
+                slot1.setStartDate(ssd)                           
+                
                 
             if entry['event_type'] == 'TALK':
-                if 1:
-#                try:
+                try:
                     if st != '':
                         ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
                     values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
+                    
                     c1 = conference.Contribution()
                     conf.addContribution(c1)
+                    c1.setParent(conf)
                     c1.setStartDate(ssd)
                     c1.setDuration(dd[3],dd[4])
                     c1.setValues(values)
+                    
                     if room: c1.setRoom(room)
                 
                     if entry['speaker']:
                         cp = conference.ContributionParticipation()
-                        #data = {'familyName':entry['speaker'].decode('utf8')}
                         data = {'familyName':entry['speaker'].encode('utf8')}
+                        if entry['affiliation']: data["affilation"] = entry['affiliation'].encode('utf8')                        
                         cp.setValues(data)
-                        cp.setAffiliation(entry['affiliation'].encode('utf8'))
                         c1._addAuthor( cp )
                         c1._primaryAuthors.append( cp )            
                         c1.getConference().getAuthorIndex().index(cp)            
                         c1.addSpeaker(cp)
-                    conf.getSchedule().addEntry(c1.getSchEntry())
+
+                    s1.addContribution(c1)          
+                    slot1.getSchedule().addEntry(c1.getSchEntry(),2)
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
-                #except:
-                #    logger.error("ERROR importing TALK. Entry: "+str(entry))
+                except:
+                    logger.error("ERROR importing TALK. Entry: "+str(entry))
                     
 
 
@@ -275,18 +287,22 @@ class DataSave(ServiceBase):
             if entry['event_type'] == 'BREAK':
                 try:
                     if st != '':
-                        ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
+                        ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                         
                     b=BreakTimeSchEntry()
                     b.setStartDate(ssd)
                     b.setDuration(dd[3],dd[4])
                     values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
                     b.setValues(values)
                     if room: b.setRoom(room)
-                    conf.getSchedule().addEntry(b) 
+                    slot1.getSchedule().addEntry(b,2) 
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4]) 
                 except:
                     logger.error("ERROR importing BREAK. Entry: "+str(entry))
 
+            slot1.fit() # FIT slot duration according with CONTRIBUTIONS in it     
+            s1.addSlot(slot1)                
+
+            transaction.commit()
         return json.dumps({'status': 'OK', 'info': 'ok'})
         
         #importer = ImporterHelper.getImporter(self._importer)
