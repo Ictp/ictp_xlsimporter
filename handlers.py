@@ -244,6 +244,8 @@ class DataSave(ServiceBase):
                 ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                          
                 s1 = conference.Session()
                 s1.setStartDate(ssd)
+                if entry['title']:
+                    s1.setTitle(entry['title'].encode('utf8'))
                 conf.addSession(s1)             
                 #### SLOT
                 slot1 = conference.SessionSlot(s1)        
