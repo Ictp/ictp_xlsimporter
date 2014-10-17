@@ -260,8 +260,7 @@ class DataSave(ServiceBase):
                 
                 
             if entry['event_type'] == 'TALK':
-                #try:
-                if 1:
+                try:
                     if st != '':
                         ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
                     values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
@@ -288,15 +287,14 @@ class DataSave(ServiceBase):
                     s1.addContribution(c1)          
                     slot1.getSchedule().addEntry(c1.getSchEntry(),2)
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
-                #except:
-                #    logger.error("ERROR importing TALK. Entry: "+str(entry))
+                except:
+                    logger.error("ERROR importing TALK. Entry: "+str(entry))
                     
 
 
 
             if entry['event_type'] == 'BREAK':
-                if 1:
-                #try:
+                try:
                     if st != '':
                         ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                         
                     b=BreakTimeSchEntry()
@@ -307,8 +305,8 @@ class DataSave(ServiceBase):
                     if room: b.setRoom(room)
                     slot1.getSchedule().addEntry(b,2) 
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4]) 
-                #except:
-                #    logger.error("ERROR importing BREAK. Entry: "+str(entry))
+                except:
+                    logger.error("ERROR importing BREAK. Entry: "+str(entry))
 
             slot1.fit() # FIT slot duration according with CONTRIBUTIONS in it     
             s1.addSlot(slot1)                
