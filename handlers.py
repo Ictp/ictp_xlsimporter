@@ -154,8 +154,9 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
             ret = []
             ret_dict = {}
             sd = None
-            room = None
+            
             while curr_row < num_rows:
+                room = None
                 curr_row += 1
                 row = worksheet.row(curr_row)
                 #print 'Row:', curr_row
@@ -220,15 +221,19 @@ class DataSave(ServiceBase):
 
     def _getAnswer(self):        
         entries = json.loads(self._data)['data']
-        #localTimezone = info.HelperMaKaCInfo.getMaKaCInfoInstance().getTimezone()
-        localTimezone = 'UTC'
+
         ch = conference.ConferenceHolder()
         conf = ch.getById(self._confId)
         conf.enableSessionSlots() 
+
+        #localTimezone = info.HelperMaKaCInfo.getMaKaCInfoInstance().getTimezone()
+        #localTimezone = 'UTC'
+        localTimezone = conf.getTimezone()
+
         ssd = None                 
                 
         for entry in entries:
-            print "ENTRY=",entry
+            #print "ENTRY=",entry
             if entry['start_date'] != '':
                 sd = entry['start_date']
             dd = entry['duration']
@@ -236,7 +241,9 @@ class DataSave(ServiceBase):
                 dd = [0,0,0,0,20] # if no DURATION specified, use default = 20 min
 
             st = entry['start_time']
-            if entry['room'] != '':            
+
+            room = None
+            if entry['room']:            
                 room = conference.CustomRoom()
                 room.setName(entry['room'].decode('utf8'))
 
@@ -253,7 +260,8 @@ class DataSave(ServiceBase):
                 
                 
             if entry['event_type'] == 'TALK':
-                try:
+                #try:
+                if 1:
                     if st != '':
                         ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) )) 
                     values = {'title':entry['title'].encode('utf8'),'description':entry['comment'].encode('utf8')}
@@ -273,21 +281,22 @@ class DataSave(ServiceBase):
                         if entry['affiliation']: data["affilation"] = entry['affiliation'].encode('utf8')                        
                         cp.setValues(data)
                         c1._addAuthor( cp )
-                        c1._primaryAuthors.append( cp )            
+                        #c1._primaryAuthors.append( cp )            
                         c1.getConference().getAuthorIndex().index(cp)            
                         c1.addSpeaker(cp)
 
                     s1.addContribution(c1)          
                     slot1.getSchedule().addEntry(c1.getSchEntry(),2)
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4])   
-                except:
-                    logger.error("ERROR importing TALK. Entry: "+str(entry))
+                #except:
+                #    logger.error("ERROR importing TALK. Entry: "+str(entry))
                     
 
 
 
             if entry['event_type'] == 'BREAK':
-                try:
+                if 1:
+                #try:
                     if st != '':
                         ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                         
                     b=BreakTimeSchEntry()
@@ -298,8 +307,8 @@ class DataSave(ServiceBase):
                     if room: b.setRoom(room)
                     slot1.getSchedule().addEntry(b,2) 
                     ssd = ssd + timedelta(hours=dd[3],minutes=dd[4]) 
-                except:
-                    logger.error("ERROR importing BREAK. Entry: "+str(entry))
+                #except:
+                #    logger.error("ERROR importing BREAK. Entry: "+str(entry))
 
             slot1.fit() # FIT slot duration according with CONTRIBUTIONS in it     
             s1.addSlot(slot1)                
