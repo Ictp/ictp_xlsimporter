@@ -253,10 +253,15 @@ class DataSave(ServiceBase):
                 s1.setStartDate(ssd)
                 if entry['title']:
                     s1.setTitle(entry['title'].encode('utf8'))
-                conf.addSession(s1)             
+                conf.addSession(s1) 
+                
+                           
                 #### SLOT
                 slot1 = conference.SessionSlot(s1)        
-                slot1.setStartDate(ssd)                           
+                slot1.setStartDate(ssd) 
+                
+                if room: 
+                    slot1.setRoom(room)                           
                 
                 
             if entry['event_type'] == 'TALK':
