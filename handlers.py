@@ -188,7 +188,7 @@ class RHTimetableUpload(RHSubmitMaterialBase, RHConferenceModifBase):
                         'room': room,
                         'comment': row_data[10]
                     }
-                    #print dict_row
+		    #print dict_row
                     ret.append(dict_row)
         return {'data':ret}
 
@@ -246,6 +246,12 @@ class DataSave(ServiceBase):
             if entry['room']:            
                 room = conference.CustomRoom()
                 room.setName(entry['room'].decode('utf8'))
+
+
+	    if timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]),0,0 )) > conf.getEndDate():
+		logger.debug("NOT Imported: "+str(entry))
+		continue
+
 
             if entry['event_type'] == 'SESSION':
                 ssd = timezone(localTimezone).localize(datetime(int(sd[0]), int(sd[1]), int(sd[2]), int(st[3]), int(st[4]) ))                          
